@@ -1,0 +1,298 @@
+<html>
+<head>
+	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+	
+	<style>
+	body {
+		background-color:#C8D2E8;
+	}
+	pre {
+		padding-left: 20px;
+	}
+	#main  {
+		border: 1px solid black;
+		width: 1000px;
+		margin-left: auto;
+		margin-right: auto;
+		padding:20px;
+		background: white;
+	}
+	.slider {
+		margin:5px;
+		margin-left:10px;
+		margin-right:10px;
+	}
+	.linbtn {
+		vertical-align:middle;
+	}
+	</style>
+	
+	<script>
+	function loadingStart() {
+		$("#loading").show();
+	};
+	function loadingStop()  {
+		$("#loading").hide();
+	};
+
+	prefix='nonunique'; // Will be set later
+	
+	function makeImages(args, callback)
+	{
+		if ($("#loading").is(":visible")) {
+			alert('another loading in progress');
+			return;
+		}
+
+		var url = "cgi/code.py?";
+		var first = true;
+		
+		for (var arg in args) {
+			if (!first) { first = false; } else { url += '&'; }
+			url += arg + '=' + args[arg];
+		}
+
+		$("#debugout").html(url);
+
+		loadingStart();
+		$.ajax(url, {
+			dataType: "text",
+			accepts: { text: "text/plain;charset=utf-8" },
+			
+			error:   function(jqXHR, textStatus, errorThrown ) { alert(textStatus); },
+			success: function(data,  textStatus, jqXHR) { 
+				loadingStop(); 
+				callback(); 
+				$("#debugout").html(data);
+				/*alert(data);*/
+			}
+		});
+	}
+	
+	
+	function Slider(name, step, defaultValue, min, max, handler) {
+		this.name = name; this.step = step; this.defaultValue = defaultValue;
+		this.min = min; this.max = max; this.handler = handler;
+		this.lastValue = this.defaultValue;
+	}
+		
+	function resetSlider(slider) 
+	{
+		$("#tb" + slider.name).addClass("slider");
+		
+		$("#tb" + slider.name).slider({ value: slider.defaultValue, min: slider.min, max: slider.max, step: slider.step, 
+			slide: function( event, ui ) {
+				$("#v" + slider.name).val(ui.value);
+			},
+			stop: function(event, ui) {
+				if (slider.lastValue != ui.value) {
+					slider.lastValue = ui.value;
+					slider.handler(ui.value);
+				}
+			}
+		});
+		
+		$("#v" + slider.name).val(slider.defaultValue);
+	}
+
+	function setSliders(args)
+	{
+		for (var k in args) { 
+			$("#tb" + k).slider({value: args[k] });
+			$("#v"  + k).val(args[k]);
+			for (var i in sliders) {
+				if (sliders[i].name == k) {
+					sliders[i].lastValue = args[k];
+				}
+			}
+		}
+		onChange(0);
+	}
+	
+	function onChange(idx)
+	{
+		var urlField = 'cache/' + prefix + '-field.png?' + new Date().getTime();
+		var urlRcs   = 'cache/' + prefix +   '-rcs.png?' + new Date().getTime();
+
+		var params   = {
+			prefix:   prefix,
+
+			wavek:    sliders[0].lastValue,
+			segments: sliders[1].lastValue,
+			phase:    sliders[2].lastValue,
+			fieldn:   sliders[3].lastValue,
+
+			gridnx:   sliders[4].lastValue,
+			gridny:   sliders[5].lastValue,
+			ofsnx:    sliders[6].lastValue,
+			ofsny:    sliders[7].lastValue
+		};
+
+		makeImages(params, function() {
+			$("#imgField").attr('src', urlField);
+			$("#imgField").attr('alt', urlField);
+			$("#urlField").val(urlField);
+
+			$("#imgRcs").attr('src', urlRcs);
+			$("#imgRcs").attr('alt', urlRcs);
+			$("#urlRcs").val(urlRcs);
+		});
+	}
+
+        sliders = [
+                new Slider("WaveK",    5,  25, 5, 200, onChange),
+                new Slider("Segments", 1,  20, 0,  40, onChange),
+                new Slider("Phase",    1,   0, 0,  10, onChange),
+                new Slider("FieldN",  10,  60, 0, 200, onChange),
+				
+                new Slider("GridNx",   1,   1, 1,   4, onChange),
+                new Slider("GridNy",   1,   1, 1,   4, onChange),
+                new Slider("OfsNx",    1,   0, 0,   0, onChange),
+                new Slider("OfsNy",    1,   0, 0,   0, onChange),
+        ];
+
+	
+	function resetSliders(skipFirst) 
+	{
+		for (idx in sliders) {
+			if (idx == 0 && skipFirst) { continue; }
+			resetSlider(sliders[idx]);
+		}
+	}
+	
+	$(function() {
+		// Generate session number (used as prefix in images)
+		var rn = Math.floor(Math.random()*100000)
+		prefix = '' + new Date().getTime() + '' + rn;
+		$('#prefix').text(prefix);
+
+		resetSliders(/*skipFirst=*/false);
+		onChange(0);
+	});
+	</script>	
+</head>
+<body>
+
+	<table id="main" border=1>
+		<!-- Formatting row -->
+		<tr>
+			<td width="5%"/> <td width="40%"/> <td width="5%"/> <td width="5%"/> <td width="10%"/> <td width="40%"/> <td width="5%"/>
+		</tr>
+	
+		<tr><td colspan="7">
+			<a href="#" onclick="$('#readme' ).toggle()">Readme (click to expand)</a>
+			&nbsp;
+			&nbsp;
+			&nbsp;
+			&nbsp;
+			&nbsp;
+			Contact: <a href="http://www.linkedin.com/in/alexvirodov">
+		      
+			  <img src="http://s.c.lnkd.licdn.com/scds/common/u/img/webpromo/btn_liprofile_blue_80x15.png" width="80" height="15" border="0" alt="View Alexandr Virodov's profile on LinkedIn" class="linbtn">
+			
+		    </a>
+			&nbsp;
+			&nbsp;
+			&nbsp;
+			&nbsp;
+			&nbsp;
+			<span style="display:none">Session: <span id='prefix'></span></span>
+		<br>
+
+			<div id="readme" style="display:none; border:1px solid black">
+				<pre>
+README
+Demonstrate EM wave scattering by solving Electric field integral equation (EFIE) 
+for perfectly electric conductors (PEC) in 2D. Implemented using numpy, scipy, and
+matplotlib.
+
+CONTROLS
+Wave K (0..100) - controls the wave number by: wavenum = 2*pi*(WaveK/100)
+Segments        - number of line segments in the scattering circle
+Phase           - angle of first segment to the incident wave
+Field N         - Number of points to use to draw the field
+
+Grid Nx/Ny      - Replicate the scattering circle N times in X/Y direction
+Ofs  Nx/Ny      - Offset each replicated circle by this amount in X/Y
+
+GRAPHS
+The 'Field' graph shows the scattering objects and two fields Ei and Es.
+Since the problem is usually symmetric about X axis, the top half shows
+the Es, scattered electric field, and the bottom half shows Es + Ei, where
+Ei is the incidental field.
+The 'RCS' shows the Radar Cross Section for the scattering objects.
+
+REFERENCES
+[1] Sabariego R, The Fast Multipole Method for Electromagnetic Field 
+Computation in Numerical and Physical Hybrid Systems
+<a href="http://orbi.ulg.ac.be/bitstream/2268/2374/1/thesis_sabariego.pdf">orbi.ulg.ac.be/bitstream/2268/2374/1/thesis_sabariego.pdf</a>
+
+[2] Zhang Y, Sarkar T, Parallel Solution of Integral Equation-Based 
+EM Problem in the Frequency Domain. Appendix C.
+<a href="http://onlinelibrary.wiley.com/doi/10.1002/9780470495094.app3/pdf">http://onlinelibrary.wiley.com/doi/10.1002/9780470495094.app3/pdf</a>
+
+				</pre>
+			</div>
+
+		<br>
+			<a href="javascript:setSliders({WaveK: 25, Segments: 20, Phase:0})">Small circle scatter</a>
+			&nbsp;&nbsp;
+			<a href="javascript:setSliders({WaveK:180, Segments: 20, Phase:0})">Large circle scatter</a>
+			&nbsp;&nbsp;
+
+			<a href="javascript:setSliders({WaveK: 25, Segments:  4, Phase:5})">Small box scatter</a>
+			&nbsp;&nbsp;
+			<a href="javascript:setSliders({WaveK:180, Segments:  4, Phase:5})">Large box scatter</a>
+			&nbsp;&nbsp;
+
+		</td></tr>
+
+                <tr>
+                        <td>Wave K  </td><td> <div id="tbWaveK"   /> </td> <td><input id="vWaveK"    type="text" size="3"/></td> <td></td>
+                        <td>Grid Nx </td><td> <div id="tbGridNx"  /> </td> <td><input id="vGridNx"   type="text" size="3"/></td>
+                </tr><tr>
+                        <td>Segments</td><td> <div id="tbSegments"/> </td> <td><input id="vSegments" type="text" size="3"/></td> <td></td>
+                        <td>Grid Ny </td><td> <div id="tbGridNy"  /> </td> <td><input id="vGridNy"   type="text" size="3"/></td>
+                </tr><tr>
+                        <td>Phase   </td><td> <div id="tbPhase"   /> </td> <td><input id="vPhase"    type="text" size="3"/></td> <td></td>
+                        <td>Ofs Nx  </td><td> <div id="tbOfsNx"   /> </td> <td><input id="vOfsNx"    type="text" size="3"/></td>
+                </tr><tr>
+                        <td>Field N *</td><td> <div id="tbFieldN"  /> </td> <td><input id="vFieldN"   type="text" size="3"/></td> <td></td>
+                        <td>Ofs Ny   </td><td> <div id="tbOfsNy"   /> </td> <td><input id="vOfsNy"    type="text" size="3"/></td>
+                </tr>
+	
+
+		<td colspan="7" align="center"><span id="loading" style="display:none">Loading... See (*) note below</span></td> <td></td>
+                <tr><th colspan="3">Field</th><td></td><th colspan="3">RCS</th></tr>
+
+                <tr>
+                        <td colspan="3" valign="top"> <input type="text" id="urlField" style="display:none"/> <td></td>
+                        <td colspan="3" valign="top"> <input type="text" id="urlRcs"   style="display:none"/>
+                </tr><tr>
+                        <td colspan="3" valign="top"> <img id="imgField"/></td> <td></td>
+                        <td colspan="3" valign="top"> <img id="imgRcs" /></td>
+                </tr>
+
+		<tr><td colspan="7">
+		* Note: slow loading times are due to matplotlib's slow 'pcolor' plot that draws
+                the field. It is very slow for even modest counts of field points. <br>
+		Having an AWS micro instance makes it only worse.
+		</td></tr>
+
+	</table>
+
+	<br>
+	<div style="border:1px solid black;display:none">
+		Debug:<br>
+		<pre id="debugout">
+		</pre>
+	</div>
+		
+	</div>			
+
+
+</body>
+</html>
+
